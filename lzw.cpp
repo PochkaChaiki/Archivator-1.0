@@ -1,11 +1,18 @@
-#include <iostream>
-#include <unordered_map>
-#include <map>
-#include <iterator>
-#include <string>
-#include <fstream>
-#include <vector>
-#include <cstring>
+// #include <iostream>
+// #include <unordered_map>
+// #include <map>
+// #include <iterator>
+// #include <string>
+// #include <fstream>
+// #include <vector>
+// #include <cstring>
+#include "LZW_alg.h"
+#include "header.h"
+
+
+void LZW::Encode(std::istream& in, std::ostream& out){
+    
+}
 
 void lzw_encode(std::string file, std::string path){
     std::string str = "", shitstr = "", s_info = "";

@@ -1,8 +1,12 @@
-#include <iostream>
-#include <queue>
-#include <map>
-#include <string>
-#include <cstring>
+// #include <iostream>
+// #include <queue>
+// #include <map>
+// #include <string>
+// #include <cstring>
+
+#include "Huffman_alg.h"
+#include "header.h"
+
 
 struct Frequency{
     int freq{0};
@@ -23,7 +27,17 @@ struct Frequency{
     };
 };
 
-void hfm_encode(std::string file, std::string path){
+const int BUFFER_SIZE = 1024;
+
+void countFrequencies(std::istream& in, std::unordered_map<char, int>& frequencies){
+    std::vector<char> buffer(BUFFER_SIZE);
+    while (!in.eof()){
+        in.read(buffer.data(), BUFFER_SIZE);
+        
+    }
+}
+
+void Huffman::Encode(std::istream& in, std::ostream& out){
     std::map <char, int> dict;
     std::map <char, std::string> result;
     FILE *f_to_encode = std::fopen(file.c_str(), "rb");
@@ -80,7 +94,7 @@ void hfm_encode(std::string file, std::string path){
     fclose(f_to_encode);
 } 
 
-void hfm_decode(std::string file, std::string path){
+void Decode(std::string file, std::string path){
     std::string temp, encoded_letters = "";
     std::map <std::string, char> code;
     FILE * f_to_decode = std::fopen(file.c_str(), "rb");

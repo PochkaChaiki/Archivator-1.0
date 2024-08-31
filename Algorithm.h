@@ -9,8 +9,8 @@ public:
     Algorithm() = default;
     virtual ~Algorithm() = default;
 
-    virtual void Encode(std::istream& in, std::ostream& out);
-    virtual void Decode(std::istream& in, std::ostream& out);    
+    virtual void Encode(std::istream& in, std::ostream& out){};
+    virtual void Decode(std::istream& in, std::ostream& out){};    
 };
 
 

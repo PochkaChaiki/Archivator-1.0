@@ -26,7 +26,7 @@
 
 const size_t BUFFER_SIZE = 1024;
 
-void countFrequencies(std::istream& in, std::unordered_map<char, int>& frequencies){
+void countFrequencies(std::istream& in, std::unordered_map<char, uint64_t>& frequencies){
     std::vector<char> buffer(BUFFER_SIZE);
     while (!in.eof()){
         in.read(buffer.data(), BUFFER_SIZE);
@@ -46,7 +46,7 @@ void Huffman::DFS(Frequency* node, char bitmap, char bitsAmount){
 }
 
 
-void Huffman::makeFrequencyTree(std::unordered_map<char, int>& frequencies){
+void Huffman::makeFrequencyTree(std::unordered_map<char, uint64_t>& frequencies){
     struct customLess{
         bool operator()(const Frequency* a, const Frequency* b) const {return a->freq > b->freq;}
     };
@@ -69,73 +69,59 @@ void Huffman::makeFrequencyTree(std::unordered_map<char, int>& frequencies){
         parentNode->right = nodeRight;
         chars.push(parentNode);
     }
-    // Stopped on making the tree of chars. 
-    // Next step is to count bits of this chars
     DFS(chars.top(), 0, 0);
 }
 
-void Huffman::PrintTree(){
-    for (const auto& [key, value] : freqDictionary){
-        std::cout << key << " "<<(int)value.first << " " << (int)value.second << "\n";
+void Huffman::writeDataToOut(std::istream& in, std::ostream& out){
+    const int BITS_AMOUNT = 8;
+    std::vector<char> buffer_in(BUFFER_SIZE);
+    std::vector<char> buffer_out(BUFFER_SIZE);
+    char byte = 0;
+    unsigned char bits_left = BITS_AMOUNT;
+    int index_out;
+    while (!in.eof()){
+        in.read(buffer_in.data(), BUFFER_SIZE);
+        index_out = 0;
+        for (int i(0); i < in.gcount(); ++i){
+            auto [enc_byte, enc_bits_amount] = freqDictionary[buffer_in[i]];
+            if (enc_bits_amount <= bits_left){
+                byte = byte<<enc_bits_amount;
+                byte += enc_byte;
+                bits_left -= enc_bits_amount;
+            } else {
+                byte = byte<<bits_left;
+                char mask = 0;
+                for (int j(0); j < bits_left; j++)
+                    mask = (mask<<1)+1;
+                byte += (enc_byte&mask);
+                if (index_out == BUFFER_SIZE){
+                    out.write(buffer_out.data(), BUFFER_SIZE);
+                    index_out = 0;
+                }
+                buffer_out[index_out] = byte;
+                byte = ((enc_byte & (!mask)) >> bits_left);
+                bits_left = BITS_AMOUNT - (enc_bits_amount - bits_left);
+                index_out++;
+            }
+        }
+        out.write(buffer_out.data(), index_out+1);
+
     }
+    
 }
+// void Huffman::PrintTree(){
+//     for (const auto& [key, value] : freqDictionary){
+//         std::cout << key << " "<<(int)value.first << " " << (int)value.second << "\n";
+//     }
+// }
 
-// void Huffman::Encode(std::istream& in, std::ostream& out){
-//     std::map <char, int> dict;
-//     std::map <char, std::string> result;
-//     FILE *f_to_encode = std::fopen(file.c_str(), "rb");
-//     char buf[1];
+void Huffman::Encode(std::istream& in, std::ostream& out){
+    std::unordered_map<char, uint64_t> freqs;
+    countFrequencies(in, freqs);
+    makeFrequencyTree(freqs);
+
     
-//     while(!feof(f_to_encode)){
-//         if(fread(buf, 1, 1, f_to_encode)==1) {
-//             dict[buf[0]] += 1;
-//         };
-//     };
-//     fclose(f_to_encode);
-
-//     std::priority_queue <Frequency> tree;
-//     for (auto& it: dict)
-//         tree.push({it.second, std::string(1, it.first)});
-    
-//     Frequency first, second;
-//     first = tree.top();
-//     if (tree.size() == 1)
-//         result[first.chars[0]] = "0";
-    
-//     while (tree.size()>=2){
-//         first = tree.top();
-//         tree.pop();
-//         second = tree.top();
-//         tree.pop();
-
-//         for (auto& c: first.chars)
-//             result[c] = "1" + result[c];
-        
-//         for (auto& c: second.chars)
-//             result[c] = "0" + result[c];
-
-//         tree.push({first.freq+second.freq, first.chars+second.chars});
-//     };
-
-//     std::string s_info ="";
-//     for (auto c : result)
-//         s_info += c.second + "||" + std::to_string((int)c.first) + "||";
-//     s_info = "hfm||" + std::to_string(s_info.length()) + "||" + s_info;
-
-//     path += "binary_encoded_hfm.zipper";
-//     FILE * out= std::fopen(path.c_str(), "ab");
-//     f_to_encode = std::fopen(file.c_str(), "rb");
-//     fputs(s_info.c_str(), out);
-    
-//     while(!feof(f_to_encode)){
-//         if(fread(buf, 1, 1, f_to_encode) == 1) {
-//             fputs(result[buf[0]].c_str(), out);
-//         };
-//     };
-
-//     fclose(out);
-//     fclose(f_to_encode);
-// } 
+} 
 
 // void Decode(std::string file, std::string path){
 //     std::string temp, encoded_letters = "";

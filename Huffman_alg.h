@@ -6,11 +6,10 @@
 #include <unordered_map>
 
 struct Frequency{
-    int freq;
+    uint64_t freq;
     char byte;
 
     struct Frequency *left=nullptr, *right=nullptr;
-    // friend bool operator> (const Frequency& l, const Frequency& r) {return l.freq>r.freq;};
 };
 
 class Huffman : Algorithm {
@@ -18,14 +17,15 @@ public:
     Huffman() = default;
     virtual ~Huffman() {};
 
-    virtual void Encode(std::istream& in, std::ostream& out) override {};
+    virtual void Encode(std::istream& in, std::ostream& out) override;
     virtual void Decode(std::istream& in, std::ostream& out) override {};   
-    void makeFrequencyTree(std::unordered_map<char, int>& countedFrequencies);
-    void PrintTree();
+    // void PrintTree();
 
 private:
     std::unordered_map<char, std::pair<char, char>>freqDictionary;
+    void makeFrequencyTree(std::unordered_map<char, uint64_t>& countedFrequencies);
     void DFS(Frequency* node, char bitmask, char bitsAmount);
+    void writeDataToOut(std::istream& in, std::ostream& out);
 };
 
 

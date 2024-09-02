@@ -28,9 +28,11 @@ const size_t BUFFER_SIZE = 1024;
 
 void countFrequencies(std::istream& in, std::unordered_map<char, uint64_t>& frequencies){
     std::vector<char> buffer(BUFFER_SIZE);
+
     while (!in.eof()){
         in.read(buffer.data(), BUFFER_SIZE);
-        for (int i(0); i < in.gcount(); ++i){
+        int n = in.gcount();
+        for (int i(0); i < n; ++i){
             frequencies[buffer[i]]++;
         }
     }
@@ -73,95 +75,114 @@ void Huffman::makeFrequencyTree(std::unordered_map<char, uint64_t>& frequencies)
 }
 
 void Huffman::writeDataToOut(std::istream& in, std::ostream& out){
+    std::cout << "Current position: " << in.tellg() << "\n";
+    in.clear();
+    in.seekg(0, std::ios_base::beg);
+    std::cout << "After seekg: " << in.tellg() << "\n";
     const int BITS_AMOUNT = 8;
     std::vector<char> buffer_in(BUFFER_SIZE);
-    std::vector<char> buffer_out(BUFFER_SIZE);
     char byte = 0;
     unsigned char bits_left = BITS_AMOUNT;
-    int index_out;
+    out.put(static_cast<char>(freqDictionary.size()));
+    for (const auto& [key, value] : freqDictionary){
+        out.put(key);
+        out.put(value.first);
+        out.put(value.second);
+    }
     while (!in.eof()){
         in.read(buffer_in.data(), BUFFER_SIZE);
-        index_out = 0;
+        std::cout << "After reading: " << in.tellg() << "\n";
         for (int i(0); i < in.gcount(); ++i){
             auto [enc_byte, enc_bits_amount] = freqDictionary[buffer_in[i]];
             if (enc_bits_amount <= bits_left){
                 byte = byte<<enc_bits_amount;
-                byte += enc_byte;
+                byte |= enc_byte;
                 bits_left -= enc_bits_amount;
             } else {
                 byte = byte<<bits_left;
+
+                byte |= (enc_byte>>(enc_bits_amount-bits_left));
+                out.put(byte);
                 char mask = 0;
-                for (int j(0); j < bits_left; j++)
+                for (int bit(0); bit < enc_bits_amount-bits_left; bit++){
                     mask = (mask<<1)+1;
-                byte += (enc_byte&mask);
-                if (index_out == BUFFER_SIZE){
-                    out.write(buffer_out.data(), BUFFER_SIZE);
-                    index_out = 0;
                 }
-                buffer_out[index_out] = byte;
-                byte = ((enc_byte & (!mask)) >> bits_left);
+                byte = enc_byte & mask;
                 bits_left = BITS_AMOUNT - (enc_bits_amount - bits_left);
-                index_out++;
             }
         }
-        out.write(buffer_out.data(), index_out+1);
-
     }
+    out.put(byte<<bits_left);
+    out.put(static_cast<char>(bits_left));
     
 }
-// void Huffman::PrintTree(){
-//     for (const auto& [key, value] : freqDictionary){
-//         std::cout << key << " "<<(int)value.first << " " << (int)value.second << "\n";
-//     }
-// }
 
 void Huffman::Encode(std::istream& in, std::ostream& out){
     std::unordered_map<char, uint64_t> freqs;
     countFrequencies(in, freqs);
     makeFrequencyTree(freqs);
-
-    
+    writeDataToOut(in, out);
 } 
 
-// void Decode(std::string file, std::string path){
-//     std::string temp, encoded_letters = "";
-//     std::map <std::string, char> code;
-//     FILE * f_to_decode = std::fopen(file.c_str(), "rb");
-//     path += "decoded_binary.zipper";
-//     FILE *out = std::fopen(path.c_str(),"ab");
-//     char buf[1];
+void Huffman::Decode(std::istream& in, std::ostream& out){
+    char size_of_dictionary = 0;
+    in.get(size_of_dictionary);
+    Frequency* root = new Frequency;
+    Frequency* node;
+    for (int i(0); i < size_of_dictionary; ++i){
+        node = root;
+        char byte, bitmap, bitAmount;
+        in.get(byte);
+        in.get(bitmap);
+        in.get(bitAmount);
+        for (int tree_index(bitAmount-1); tree_index >= 0; tree_index--){
+            if (bitmap&(1<<tree_index) != 0){
+                if (node->right == nullptr)
+                    node->right = new Frequency;
+                node = node->right;
+            } else {
+                if (node->left == nullptr)
+                    node->left = new Frequency;
+                node = node->left;
+            }
+            if (tree_index == 0){
+                node->byte = byte;
+            }
+        }
+    }   
 
-//     fseek(f_to_decode, 5, 0);
-//     fread(buf, 1, 1, f_to_decode);
-//     temp += buf[0];
-//     while (buf[0] != '|'){
-//         fread(buf, 1, 1, f_to_decode);
-//         temp += buf[0];
-//     }
-//     fread(buf, 1, 1, f_to_decode);
-//     int _sz = std::stoi(temp);
-//     char * info_block = new char[_sz];
-//     fread(info_block, 1, _sz, f_to_decode);
-
-//     char * tok = strtok(info_block, "||");
-//     while (tok){
-//         char * temptok = tok;
-//         tok = strtok(NULL, "||");
-//         code[temptok] = std::atoi(tok);
-//         tok = strtok(NULL, "||");
-//     }
-
-//     while(!feof(f_to_decode)) {
-//         if (fread(buf, 1, 1, f_to_decode) == 1){
-//             encoded_letters += buf[0];
-//             if (code.find(encoded_letters) != code.end()){
-//                 buf[0] = code[encoded_letters];
-//                 fwrite(buf, 1, 1, out);
-//                 encoded_letters = "";
-//             };
-//         };
-//     };
-
-//     fclose(out);
-//     fclose(f_to_decode);
-// }
+    node = root;
+    char byte_in(0), second_byte(0);
+    int bits_limit = 0;
+    in.get(byte_in);
+    while (!in.eof()){
+    /* 
+     * second byte is added to get know, 
+     * if it is an end of file so then second_byte is a number 
+     * of unnessesary bits
+     */
+        in.get(second_byte);
+        
+        if (in.eof()){
+            bits_limit = static_cast<int>(second_byte);
+        }
+        for (int bit(7); bit >= bits_limit; bit--){
+            if (byte_in&(1<<bit) != 0){
+                if (node->right != nullptr){
+                    node = node->right;
+                    continue;
+                }
+                out.put(node->byte);
+                node = root;
+            } else {
+                if (node->left != nullptr){
+                    node = node->left;
+                    continue;
+                }
+                out.put(node->byte);
+                node = root;
+            }
+        }
+        byte_in = second_byte;
+    }
+}

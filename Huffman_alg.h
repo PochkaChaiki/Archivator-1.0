@@ -18,7 +18,7 @@ public:
     virtual ~Huffman() {};
 
     virtual void Encode(std::istream& in, std::ostream& out) override;
-    virtual void Decode(std::istream& in, std::ostream& out) override {};   
+    virtual void Decode(std::istream& in, std::ostream& out) override;   
     // void PrintTree();
 
 private:

@@ -3,27 +3,6 @@
 #include "header.h"
 
 
-// struct Frequency{
-//     int freq{0};
-//     std::string chars = "";
-
-//     friend bool operator< (const Frequency& l, const Frequency& r){
-//         return l.freq>r.freq;
-//     };
-
-//     Frequency& operator= (const Frequency& other){
-//         if (this == &other){
-//             return *this;
-//         } else {
-//             chars = other.chars;
-//             freq = other.freq;
-//             return *this;
-//         };
-//     };
-// };
-
-
-
 const size_t BUFFER_SIZE = 1024;
 
 void countFrequencies(std::istream& in, std::unordered_map<char, uint64_t>& frequencies){
@@ -75,10 +54,8 @@ void Huffman::makeFrequencyTree(std::unordered_map<char, uint64_t>& frequencies)
 }
 
 void Huffman::writeDataToOut(std::istream& in, std::ostream& out){
-    std::cout << "Current position: " << in.tellg() << "\n";
     in.clear();
     in.seekg(0, std::ios_base::beg);
-    std::cout << "After seekg: " << in.tellg() << "\n";
     const int BITS_AMOUNT = 8;
     std::vector<char> buffer_in(BUFFER_SIZE);
     char byte = 0;
@@ -91,7 +68,6 @@ void Huffman::writeDataToOut(std::istream& in, std::ostream& out){
     }
     while (!in.eof()){
         in.read(buffer_in.data(), BUFFER_SIZE);
-        std::cout << "After reading: " << in.tellg() << "\n";
         for (int i(0); i < in.gcount(); ++i){
             auto [enc_byte, enc_bits_amount] = freqDictionary[buffer_in[i]];
             if (enc_bits_amount <= bits_left){
@@ -136,7 +112,9 @@ void Huffman::Decode(std::istream& in, std::ostream& out){
         in.get(bitmap);
         in.get(bitAmount);
         for (int tree_index(bitAmount-1); tree_index >= 0; tree_index--){
-            if (bitmap&(1<<tree_index) != 0){
+            char mask = (1<<tree_index);
+            char way = bitmap&mask;
+            if (way != 0){
                 if (node->right == nullptr)
                     node->right = new Frequency;
                 node = node->right;
@@ -167,20 +145,27 @@ void Huffman::Decode(std::istream& in, std::ostream& out){
             bits_limit = static_cast<int>(second_byte);
         }
         for (int bit(7); bit >= bits_limit; bit--){
-            if (byte_in&(1<<bit) != 0){
-                if (node->right != nullptr){
-                    node = node->right;
-                    continue;
+            char mask = 1<<bit;
+            char way = byte_in&mask;
+            if (way != 0){
+                node = node->right;
+                // if (node->right != nullptr){
+                //     node = node->right;
+                //     continue;
+                // }
+                if (node->right == nullptr){
+                    out.put(node->byte);
+                    node = root;
                 }
-                out.put(node->byte);
-                node = root;
             } else {
-                if (node->left != nullptr){
+                // if (node->left != nullptr){
                     node = node->left;
-                    continue;
+                    // continue;
+                // }
+                if (node->left == nullptr){
+                    out.put(node->byte);
+                    node = root;
                 }
-                out.put(node->byte);
-                node = root;
             }
         }
         byte_in = second_byte;

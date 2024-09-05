@@ -83,6 +83,7 @@ void Huffman::writeDataToOut(std::istream& in, std::ostream& out){
     // Actual file compressing
     while (!in.eof()){
         in.read(buffer_in.data(), BUFFER_SIZE);
+        int gcount = in.gcount();
         for (int i(0); i < in.gcount(); ++i){
             for (int part_of_byte(1); part_of_byte >= 0; part_of_byte--){
                 char byte_in = (buffer_in[i] >> 4*part_of_byte) & 15;
@@ -170,7 +171,7 @@ void Huffman::Decode(std::istream& in, std::ostream& out){
         in.get(second_byte);
         
         if (in.eof()){
-            bits_limit = static_cast<int>(second_byte);
+            bits_limit = second_byte==0?7:static_cast<int>(second_byte);
         }
         for (int bit(7); bit >= bits_limit; bit--){
             char mask = 1<<bit;
@@ -182,7 +183,7 @@ void Huffman::Decode(std::istream& in, std::ostream& out){
                     byte_out |= node->byte;
                     node = root;
                     if (byte_out_first_part){
-                        out.put(node->byte);
+                        out.put(byte_out);
                         byte_out_first_part = false;
                         continue;
                     }
@@ -195,7 +196,7 @@ void Huffman::Decode(std::istream& in, std::ostream& out){
                     byte_out |= node->byte;
                     node = root;
                     if (byte_out_first_part){
-                        out.put(node->byte);
+                        out.put(byte_out);
                         byte_out_first_part = false;
                         continue;
                     }

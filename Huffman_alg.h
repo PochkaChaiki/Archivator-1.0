@@ -22,9 +22,9 @@ public:
     // void PrintTree();
 
 private:
-    std::unordered_map<char, std::pair<char, char>>freqDictionary;
+    std::unordered_map<char, std::pair<uint16_t, char>>freqDictionary;
     void makeFrequencyTree(std::unordered_map<char, uint64_t>& countedFrequencies);
-    void DFS(Frequency* node, char bitmask, char bitsAmount);
+    void DFS(Frequency* node, uint16_t bitmask, char bitsAmount); // bitmask contains 16 bits because for 4 bits maximum encoded word is 14 bits in length.
     void writeDataToOut(std::istream& in, std::ostream& out);
 };
 
